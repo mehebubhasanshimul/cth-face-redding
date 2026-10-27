@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>CTH FACE READING • SHADOW JOKER</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Hind+Siliguri:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<style>
+/* ---- CSS VARIABLES & RESET ---- */
+:root{
+  --neon1:#a78bfa;
+  --neon2:#22d3ee;
+  --neon3:#f472b6;
+  --neon4:#facc15;
+  --bg-deep:#08080c;
+  --card-bg:rgba(20,20,28,0.75);
+  --border-glow:rgba(167,139,250,0.4);
+  --radius:24px;
+  --transition:0.4s cubic-bezier(0.2,0.9,0.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%}
+body{
+  background:var(--bg-deep);
+  color:#fff;
+  font-family:'Hind Siliguri',sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:12px;
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+/* Animated background gradient */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(167,139,250,0.18), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(34,211,238,0.12), transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(244,114,182,0.10), transparent 60%);
+  animation:bgPulse 14s ease-in-out infinite alternate;
+  z-index:-2;
+}
+@keyframes bgPulse{
+  0%{opacity:0.6; transform:scale(1)}
+  100%{opacity:1; transform:scale(1.15)}
+}
+/* Subtle floating particles */
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    radial-gradient(2px 2px at 15% 25%, rgba(167,139,250,0.7), transparent),
+    radial-gradient(2px 2px at 85% 45%, rgba(34,211,238,0.6), transparent),
+    radial-gradient(2px 2px at 45% 85%, rgba(244,114,182,0.5), transparent),
+    radial-gradient(2px 2px at 70% 15%, rgba(250,204,21,0.4), transparent),
+    radial-gradient(2px 2px at 25% 65%, rgba(34,211,238,0.4), transparent);
+  background-size:200px 200px;
+  animation:particleDrift 30s linear infinite;
+  opacity:0.5;
+  z-index:-1;
+  pointer-events:none;
+}
+@keyframes particleDrift{
+  0%{background-position:0 0}
+  100%{background-position:200px 200px}
+}
+
+.container{
+  max-width:480px;
+  width:100%;
+  position:relative;
+  padding-bottom:10px;
+}
+
+/* ---- BRAND / HEADER ---- */
+.brand{
+  text-align:center;
+  padding:10px 0 4px;
+  position:relative;
+}
+.logo{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(28px,8vw,40px);
+  line-height:0.95;
+  letter-spacing:2px;
+  font-weight:900;
+  background:linear-gradient(90deg, var(--neon1), var(--neon2), var(--neon3), var(--neon4), var(--neon1));
+  background-size:300% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:neonFlow 6s linear infinite;
+  filter:drop-shadow(0 0 18px rgba(167,139,250,0.6));
+  position:relative;
+}
+@keyframes neonFlow{
+  0%{background-position:0% 50%}
+  100%{background-position:300% 50%}
+}
+.sub{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(9px,2.8vw,12px);
+  letter-spacing:4px;
+  color:var(--neon2);
+  margin-top:8px;
+  text-shadow:0 0 12px var(--neon2), 0 0 24px rgba(34,211,238,0.5);
+  animation:subGlow 3s ease-in-out infinite alternate;
+}
+@keyframes subGlow{
+  0%{text-shadow:0 0 8px var(--neon2)}
+  100%{text-shadow:0 0 20px var(--neon2), 0 0 36px rgba(34,211,238,0.7)}
+}
+.tag{
+  font-size:clamp(11px,2.8vw,13px);
+  opacity:0.7;
+  margin-top:6px;
+  letter-spacing:0.5px;
+  background:linear-gradient(90deg, var(--neon3), var(--neon1), var(--neon2));
+  background-size:200% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:tagShift 8s linear infinite;
+}
+@keyframes tagShift{
+  0%{background-position:0% 50%}
+  100%{background-position:200% 50%}
+}
+
+/* ---- HERO CARD ---- */
+.hero{
+  border:1px solid var(--border-glow);
+  background:linear-gradient(160deg, rgba(24,24,32,0.9), rgba(12,12,18,0.95));
+  border-radius:var(--radius);
+  padding:16px;
+  margin-top:16px;
+  box-shadow:0 0 40px rgba(167,139,250,0.12), inset 0 0 60px rgba(34,211,238,0.04);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';
+  position:absolute;
+  top:-50%;left:-50%;
+  width:200%;height:200%;
+  background:conic-gradient(from 0deg, transparent, rgba(167,139,250,0.06), transparent, rgba(34,211,238,0.06), transparent);
+  animation:rotateConic 12s linear infinite;
+  z-index:0;
+  pointer-events:none;
+}
+@keyframes rotateConic{to{transform:rotate(360deg)}}
+.hero > *{position:relative;z-index:1}
+
+/* ---- UPLOAD AREA ---- */
+.upload{
+  border:2px dashed rgba(167,139,250,0.35);
+  border-radius:18px;
+  padding:clamp(18px,6vw,32px);
+  text-align:center;
+  background:rgba(15,15,20,0.7);
+  cursor:pointer;
+  transition:var(--transition);
+  display:block;
+  position:relative;
+  overflow:hidden;
+}
+.upload:hover, .upload:active{
+  border-color:var(--neon2);
+  background:rgba(34,211,238,0.05);
+  box-shadow:0 0 30px rgba(34,211,238,0.15);
+}
+.upload .icon{
+  font-size:clamp(32px,8vw,44px);
+  display:block;
+  margin-bottom:6px;
+  filter:drop-shadow(0 0 12px var(--neon1));
+  animation:iconFloat 3s ease-in-out infinite;
+}
+@keyframes iconFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+.upload .title{
+  font-weight:700;
+  font-size:clamp(14px,3.8vw,17px);
+  background:linear-gradient(90deg,var(--neon1),var(--neon2));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.upload .hint{
+  font-size:clamp(10px,2.6vw,12px);
+  opacity:0.55;
+  margin-top:4px;
+}
+.upload input{display:none}
+
+/* ---- BUTTONS ---- */
+.btn{
+  width:100%;
+  padding:clamp(12px,3.5vw,16px);
+  border-radius:16px;
+  border:none;
+  font-weight:700;
+  font-size:clamp(13px,3.5vw,15px);
+  cursor:pointer;
+  margin-top:12px;
+  font-family:'Hind Siliguri',sans-serif;
+  transition:var(--transition);
+  position:relative;
+  overflow:hidden;
+  letter-spacing:0.3px;
+}
+.btn:active{transform:scale(0.97)}
+.btn-main{
+  background:linear-gradient(90deg, var(--neon1), var(--neon2), var(--neon3));
+  background-size:200% 100%;
+  color:#000;
+  box-shadow:0 0 22px rgba(167,139,250,0.45);
+  animation:btnGradient 4s linear infinite;
+}
+@keyframes btnGradient{
+  0%{background-position:0% 50%}
+  100%{background-position:200% 50%}
+}
+.btn-main:hover{
+  box-shadow:0 0 34px rgba(34,211,238,0.6), 0 0 60px rgba(244,114,182,0.3);
+}
+.btn-ghost{
+  background:rgba(167,139,250,0.08);
+  border:1px solid rgba(167,139,250,0.3);
+  color:var(--neon2);
+}
+.btn-ghost:hover{
+  background:rgba(167,139,250,0.15);
+  border-color:var(--neon2);
+  box-shadow:0 0 20px rgba(34,211,238,0.2);
+}
+
+/* ---- MEDIA ---- */
+#preview, #video{
+  width:100%;
+  border-radius:18px;
+  margin-top:14px;
+  display:none;
+  box-shadow:0 0 30px rgba(0,0,0,0.7), 0 0 20px rgba(167,139,250,0.2);
+  border:1px solid rgba(167,139,250,0.2);
+}
+
+/* ---- LOADER ---- */
+.loader{
+  display:none;
+  text-align:center;
+  margin:18px 0;
+  font-size:clamp(12px,3vw,14px);
+  color:var(--neon2);
+  letter-spacing:0.5px;
+}
+.loader .spinner{
+  display:inline-block;
+  width:22px;height:22px;
+  border:2px solid rgba(34,211,238,0.2);
+  border-top-color:var(--neon2);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+  vertical-align:middle;
+  margin-right:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- RESULT CARDS ---- */
+#results{margin-top:6px}
+.card{
+  background:linear-gradient(135deg, rgba(28,28,38,0.95), rgba(18,18,26,0.95));
+  border:1px solid rgba(167,139,250,0.2);
+  border-left:4px solid var(--neon1);
+  border-radius:16px;
+  padding:clamp(12px,3.5vw,16px);
+  margin-top:12px;
+  animation:cardPop 0.5s cubic-bezier(0.2,0.9,0.3,1) both;
+  position:relative;
+  overflow:hidden;
+  transition:var(--transition);
+}
+.card:hover{
+  border-left-color:var(--neon2);
+  box-shadow:0 0 24px rgba(34,211,238,0.15);
+  transform:translateY(-2px);
+}
+.card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:2px;
+  background:linear-gradient(90deg, transparent, var(--neon1), var(--neon2), transparent);
+  opacity:0.6;
+  animation:scanLine 3s linear infinite;
+}
+@keyframes scanLine{
+  0%{transform:translateX(-100%)}
+  100%{transform:translateX(100%)}
+}
+@keyframes cardPop{
+  from{transform:translateY(14px) scale(0.97); opacity:0}
+  to{transform:translateY(0) scale(1); opacity:1}
+}
+.card h3{
+  margin:0 0 8px 0;
+  font-size:clamp(12px,3.4vw,14px);
+  font-weight:700;
+  background:linear-gradient(90deg, var(--neon1), var(--neon2), var(--neon3));
+  background-size:200% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:0.3px;
+  animation:headingShift 5s linear infinite;
+}
+@keyframes headingShift{
+  0%{background-position:0% 50%}
+  100%{background-position:200% 50%}
+}
+.card p{
+  margin:0;
+  font-size:clamp(12px,3.3vw,13.5px);
+  line-height:1.75;
+  opacity:0.92;
+  color:#d4d4e0;
+}
+
+/* ---- FOOTER ---- */
+.footer{
+  font-size:clamp(9px,2.4vw,10.5px);
+  opacity:0.4;
+  text-align:center;
+  margin:22px 0 8px;
+  line-height:1.7;
+  letter-spacing:0.2px;
+}
+.footer span{
+  background:linear-gradient(90deg, var(--neon1), var(--neon2));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  font-weight:600;
+}
+
+/* ---- GLOWING DIVIDER ---- */
+.divider{
+  height:1px;
+  margin:14px 0;
+  background:linear-gradient(90deg, transparent, var(--neon1), var(--neon2), transparent);
+  opacity:0.3;
+}
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(var(--neon1), var(--neon2));
+  border-radius:10px;
+}
+
+/* ---- ANIMATED TEXT EFFECTS ---- */
+.glow-text{
+  animation:glowPulse 2s ease-in-out infinite alternate;
+}
+@keyframes glowPulse{
+  from{text-shadow:0 0 4px var(--neon1)}
+  to{text-shadow:0 0 16px var(--neon2), 0 0 28px var(--neon1)}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- BRAND -->
+  <div class="brand">
+    <div class="logo">CTH<br>FACE READING</div>
+    <div class="sub">CREATE BY SHADOW JOKER</div>
+    <div class="tag">✦ ভাগ্য ও মুখের রহস্য উন্মোচন ✦</div>
+  </div>
+
+  <!-- MAIN CARD -->
+  <div class="hero">
+    <label class="upload" for="fileInput">
+      <span class="icon">📸</span>
+      <div class="title">ছবি আপলোড করুন</div>
+      <div class="hint">স্পষ্ট মুখের ছবি দিন, AI বিশ্লেষণ করবে</div>
+      <input type="file" id="fileInput" accept="image/*" capture="user">
+    </label>
+
+    <button class="btn btn-ghost" id="cameraBtn">📷 ক্যামেরা চালু করুন</button>
+
+    <video id="video" autoplay playsinline muted></video>
+    <img id="preview" alt="preview" />
+
+    <div class="loader" id="loader">
+      <span class="spinner"></span> CTH AI বিশ্লেষণ করছে...
+    </div>
+
+    <div id="results"></div>
+
+    <div class="divider"></div>
+  </div>
+
+  <button class="btn btn-main" id="resetBtn" style="display:none">🔄 নতুন করে চেষ্টা করুন</button>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>CTH FACE READING</span> — একটি ওপেন সোর্স প্রজেক্ট<br>
+    ⚠️ ফলাফল শুধুমাত্র বিনোদনের উদ্দেশ্যে, বৈজ্ঞানিকভাবে প্রমাণিত নয়<br>
+    © 2026 CTH FACE READING | Create By SHADOW JOKER
+  </div>
+</div>
+
+<script>
+/* ============================================
+   CTH FACE READING - MAIN LOGIC
+   Open source, mobile-first, animated UI
+   ============================================ */
+const fileInput   = document.getElementById('fileInput');
+const preview     = document.getElementById('preview');
+const video       = document.getElementById('video');
+const resultsDiv  = document.getElementById('results');
+const loader      = document.getElementById('loader');
+const resetBtn    = document.getElementById('resetBtn');
+
+/* ---- MediaPipe FaceMesh init ---- */
+const faceMesh = new FaceMesh({
+  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
+});
+faceMesh.setOptions({
+  maxNumFaces: 1,
+  refineLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
+faceMesh.onResults(onFaceResult);
+
+/* ---- Utility: Euclidean distance ---- */
+function dist(a, b){
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/* ---- Extract facial features from landmarks ---- */
+function getFeatures(lm){
+  return {
+    eyeDistance:    dist(lm[33], lm[263]),
+    eyeSize:        dist(lm[159], lm[145]),
+    foreheadRatio:  dist(lm[10], lm[1]) / dist(lm[10], lm[152]),
+    noseLength:     dist(lm[10], lm[1]),
+    cheekFullness:  dist(lm[123], lm[352]),
+    lipThickness:   dist(lm[13], lm[14]),
+    jawWidth:       dist(lm[172], lm[397])
+  };
+}
+
+/* ---- Build reading text based on features ---- */
+function buildReading(f){
+  return [
+    {
+      zone: "১. কপাল (ভাগ্য-রেখা)",
+      text: f.foreheadRatio > 0.38
+        ? "আপনার কপাল প্রশস্ত ও উজ্জ্বল। এটি একটি শুভ লক্ষণ — আপনি স্বাভাবিকভাবে ভাগ্যবান, নেতৃত্বের গুণসম্পন্ন এবং জীবনে বড় সিদ্ধান্ত নিতে দ্বিধা করেন না। আপনার পরিকল্পনা বাস্তবায়নে মানুষ আপনাকে সহযোগিতা করতে ভালোবাসে।"
+        : "আপনার কপাল মাঝারি ও সুষম। আপনি বাস্তববাদী, ধৈর্যশীল এবং নিজের পরিশ্রমে সফলতা অর্জন করেন। জীবনে বড় ঝুঁকি নেওয়ার আগে আপনি ভালোভাবে ভাবেন — এটাই আপনার শক্তি।"
+    },
+    {
+      zone: "২. চোখ (অন্তর্দৃষ্টি ও আবেগ)",
+      text: (f.eyeSize > 0.03
+        ? "আপনার চোখ বড় ও প্রাণবন্ত। আপনি অত্যন্ত সংবেদনশীল, কল্পনাপ্রবণ এবং মানুষের মন বুঝতে পারদর্শী। শিল্প, সৃজনশীলতা বা পরামর্শের ক্ষেত্রে আপনার বিশেষ প্রতিভা রয়েছে।"
+        : "আপনার চোখ গভীর ও স্থির। আপনি চিন্তাশীল, রহস্যময় এবং দৃঢ়প্রতিজ্ঞ। আপনি সহজে কারও দ্বারা প্রভাবিত হন না — যা আপনাকে কঠিন পরিস্থিতিতে সঠিক সিদ্ধান্ত নিতে সাহায্য করে।")
+        + (f.eyeDistance > 0.09
+          ? " আপনার দুই চোখের মাঝে দূরত্ব বেশি — এটি ইঙ্গিত দেয় আপনি মুক্তমনা, সহনশীল এবং বিস্তৃত দৃষ্টিভঙ্গির অধিকারী।"
+          : " আপনার চোখের মাঝে দূরত্ব কম — আপনি মনোযোগী, ফোকাসড এবং দ্রুত সিদ্ধান্তে পৌঁছাতে পারেন।")
+    },
+    {
+      zone: "৩. নাক (সম্পদ ও জীবনীশক্তি)",
+      text: (f.noseLength > 0.25
+        ? "আপনার নাক দীর্ঘ ও স্পষ্ট। এটি আকর্ষণ, আত্মবিশ্বাস ও সম্পদ অর্জনের শক্তিশালী ইঙ্গিত। আপনি উচ্চাকাঙ্ক্ষী এবং জীবনে উন্নতির জন্য নিরলস চেষ্টা করেন। "
+        : "")
+        + (f.cheekFullness > 0.35
+          ? "আপনার গাল ভরা ও উজ্জ্বল — এটি সৌভাগ্য, উষ্ণতা ও সামাজিক জনপ্রিয়তার প্রতীক। মানুষ আপনাকে সহজে পছন্দ করে এবং আপনার আশেপাশে আরাম বোধ করে। "
+          : "")
+        + (f.jawWidth > 0.18
+          ? "আপনার চোয়াল চওড়া ও শক্তিশালী — এটি দৃঢ় সংকল্প, সাহস ও নেতৃত্বের গুণ প্রকাশ করে। আপনি চ্যালেঞ্জ নিতে ভালোবাসেন।"
+          : "আপনার চোয়াল নরম ও সুষম — আপনি কোমল স্বভাবের, শান্তিপ্রিয় এবং দ্বন্দ্ব এড়িয়ে চলতে পছন্দ করেন।")
+    },
+    {
+      zone: "৪. ঠোঁট (ভালোবাসা ও সম্পর্ক)",
+      text: f.lipThickness < 0.02
+        ? "আপনার ঠোঁট পাতলা ও সংবেদনশীল। আপনি আবেগ প্রকাশে সংযত, কিন্তু অন্তরে অত্যন্ত অনুভূতিপ্রবণ। সম্পর্কে আপনি বিশ্বস্ত ও একনিষ্ঠ।"
+        : "আপনার ঠোঁট পূর্ণ ও আকর্ষণীয়। আপনি প্রেমময়, উষ্ণ এবং সম্পর্কে যত্নশীল। মানুষ আপনার কাছে আবেগগত সমর্থন খুঁজে পায়। আপনার হাসি অত্যন্ত চুম্বকীয়।"
+    },
+    {
+      zone: "৫. সামগ্রিক মুখশ্রী ও ব্যক্তিত্ব",
+      text: "আপনার মুখের গঠন একটি অনন্য সমন্বয় প্রকাশ করে। আপনি সহজাতভাবে সামাজিক, বুদ্ধিমান এবং আপনার উপস্থিতিতে মানুষ স্বাচ্ছন্দ্য বোধ করে। জীবনে সফলতার সম্ভাবনা প্রবল — বিশেষত যখন আপনি আপনার অন্তর্দৃষ্টি ও পরিশ্রমকে একসাথে কাজে লাগান। আপনার ভেতরের ইতিবাচক শক্তি আপনাকে দীর্ঘমেয়াদে সৌভাগ্য এনে দেবে।"
+    }
+  ];
+}
+
+/* ---- Callback: results from FaceMesh ---- */
+function onFaceResult(res){
+  loader.style.display = 'none';
+
+  // No face detected
+  if(!res.multiFaceLandmarks || res.multiFaceLandmarks.length === 0){
+    resultsDiv.innerHTML = `
+      <div class="card" style="border-left-color:#f472b6">
+        <h3>⚠️ মুখ শনাক্ত করা যায়নি</h3>
+        <p>অনুগ্রহ করে স্পষ্ট, সামনের দিকের এবং ভালো আলোযুক্ত একটি মুখের ছবি ব্যবহার করুন। ছবিতে একাধিক মুখ থাকলে সমস্যা হতে পারে। আবার চেষ্টা করুন।</p>
+      </div>`;
+    resetBtn.style.display = 'block';
+    return;
+  }
+
+  // Build & display readings
+  const features = getFeatures(res.multiFaceLandmarks[0]);
+  const readings = buildReading(features);
+
+  resultsDiv.innerHTML = '';
+  readings.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = `${i * 0.08}s`;
+    card.innerHTML = `<h3>${r.zone}</h3><p>${r.text}</p>`;
+    resultsDiv.appendChild(card);
+  });
+
+  resetBtn.style.display = 'block';
+}
+
+/* ---- Process an image through FaceMesh ---- */
+async function process(img){
+  loader.style.display = 'block';
+  resultsDiv.innerHTML = '';
+  resetBtn.style.display = 'none';
+  try {
+    await faceMesh.send({ image: img });
+  } catch(err){
+    loader.style.display = 'none';
+    resultsDiv.innerHTML = `
+      <div class="card" style="border-left-color:#f472b6">
+        <h3>❌ ত্রুটি</h3>
+        <p>ছবি প্রসেস করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।</p>
+      </div>`;
+    resetBtn.style.display = 'block';
+  }
+}
+
+/* ---- File upload handler ---- */
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  // Stop camera if running
+  if(cam){ cam.stop(); cam = null; }
+
+  const url = URL.createObjectURL(file);
+  preview.src = url;
+  preview.style.display = 'block';
+  video.style.display = 'none';
+
+  preview.onload = () => process(preview);
+  preview.onerror = () => {
+    resultsDiv.innerHTML = `<div class="card"><p>ছবি লোড করা যায়নি।</p></div>`;
+  };
+});
+
+/* ---- Camera handler ---- */
+let cam = null;
+
+document.getElementById('cameraBtn').addEventListener('click', async () => {
+  // Reset state
+  resultsDiv.innerHTML = '';
+  resetBtn.style.display = 'none';
+  preview.style.display = 'none';
+
+  try {
+    video.style.display = 'block';
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    video.srcObject = stream;
+
+    cam = new Camera(video, {
+      onFrame: async () => {
+        await faceMesh.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+    await cam.start();
+    loader.style.display = 'block';
+    loader.innerHTML = '<span class="spinner"></span> ক্যামেরা চালু হয়েছে, মুখ দেখান...';
+
+  } catch(err){
+    video.style.display = 'none';
+    resultsDiv.innerHTML = `
+      <div class="card" style="border-left-color:#f472b6">
+        <h3>📷 ক্যামেরা ত্রুটি</h3>
+        <p>ক্যামেরা চালু করা যায়নি। অনুগ্রহ করে অনুমতি দিন অথবা ছবি আপলোড করুন।</p>
+      </div>`;
+    resetBtn.style.display = 'block';
+  }
+});
+
+/* ---- Reset ---- */
+resetBtn.addEventListener('click', () => {
+  resultsDiv.innerHTML = '';
+  preview.style.display = 'none';
+  video.style.display = 'none';
+  loader.style.display = 'none';
+  resetBtn.style.display = 'none';
+  fileInput.value = '';
+  if(cam){ cam.stop(); cam = null; }
+  if(video.srcObject){
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+});
+
+/* ---- Cleanup on page hide ---- */
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden && cam){
+    cam.stop();
+    cam = null;
+  }
+});
+</script>
+</body>
+  </html>
